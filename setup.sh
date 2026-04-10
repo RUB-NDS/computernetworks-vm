@@ -31,7 +31,7 @@ export SUDO_USER="${SUDO_USER:-kali}"
 export DEBIAN_FRONTEND=noninteractive
 # ============================================================
 
-SERVER="${KALI_SETUP_SERVER:-https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/main/kali-setup}"
+SERVER="${KALI_SETUP_SERVER:-https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/main/}"
 MODULE_DIR="/tmp/kali-modules"
 LOG_FILE="/var/log/kali-setup.log"
 MODULES=(00-base 05-vm-tools 10-apache-ssl 20-browsers 30-tor 40-docker 50-locale 60-hosts 70-vscode)
