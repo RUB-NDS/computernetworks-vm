@@ -10,7 +10,7 @@ inklusive Apache mit TLS, Browser-Trust-Stores, Docker und VS Code.
 Öffnet ein Terminal und führt folgenden Befehl aus:
 
 ```bash
-curl -fsSL https://cn.nds.rub.de/kali-setup/setup.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/main/kali-setup/setup.sh | sudo bash
 ```
 
 > **Hinweis:** Der Befehl benötigt Root-Rechte. Gebt euer Passwort ein,
