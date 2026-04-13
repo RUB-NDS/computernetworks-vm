@@ -13,6 +13,14 @@ if [[ "$ARCH" == "amd64" ]]; then
     # torbrowser-launcher: Übernimmt Download und Signaturprüfung des Tor Browsers
     echo "[30-tor] Installiere Torbrowser-Launcher..."
     apt-get -qq install -y torbrowser-launcher
+    # torbrowser-launcher zu XFCE Whisker-Menu-Favoriten hinzufuegen
+    WHISKER_RC=$(find "/home/$REAL_USER/.config/xfce4/panel" -name 'whiskermenu-*.rc' 2>/dev/null | head -1)
+    TOR_DESKTOP=$(find /usr/share/applications -maxdepth 1 -name '*torbrowser*' -printf '%f\n' 2>/dev/null | head -1)
+    if [[ -n "$WHISKER_RC" && -n "$TOR_DESKTOP" ]] && ! grep -q "$TOR_DESKTOP" "$WHISKER_RC" 2>/dev/null; then
+        sed -i "s/^favorites=\(.*\)/favorites=$TOR_DESKTOP;\1/" "$WHISKER_RC"
+        echo "[30-tor] $TOR_DESKTOP zu Whisker-Menu-Favoriten hinzugefuegt."
+    fi
+
     echo "[30-tor] Fertig. Starten mit: torbrowser-launcher"
 else
     # Kein torbrowser-launcher fuer ARM – Nightly-Build manuell installieren
@@ -62,6 +70,13 @@ EOF
         update-desktop-database /usr/share/applications > /dev/null 2>&1 || true
 
         echo "[30-tor] Tor Browser Nightly installiert unter $INSTALL_DIR"
+    fi
+
+    # Tor Browser zu XFCE Whisker-Menu-Favoriten hinzufuegen
+    WHISKER_RC=$(find "/home/$REAL_USER/.config/xfce4/panel" -name 'whiskermenu-*.rc' 2>/dev/null | head -1)
+    if [[ -n "$WHISKER_RC" ]] && ! grep -q 'tor-browser.desktop' "$WHISKER_RC" 2>/dev/null; then
+        sed -i 's/^favorites=\(.*\)/favorites=tor-browser.desktop;\1/' "$WHISKER_RC"
+        echo "[30-tor] Tor Browser zu Whisker-Menu-Favoriten hinzugefuegt."
     fi
 
     echo "[30-tor] Fertig. Starten mit: $INSTALL_DIR/Browser/start-tor-browser"
