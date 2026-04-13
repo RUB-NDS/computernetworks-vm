@@ -60,27 +60,28 @@ for mod in "${MODULES[@]}"; do
 done
 
 echo "" | tee -a "$LOG_FILE"
-
-# Whisker-Menu-Favoriten in laufende Sitzung uebernehmen
-WHISKER_DEFAULTS="/etc/xdg/xfce4/whiskermenu/defaults.rc"
-if [[ -f "$WHISKER_DEFAULTS" ]]; then
-    FAVORITES_LINE=$(grep '^favorites=' "$WHISKER_DEFAULTS" | cut -d= -f2)
-    if [[ -n "$FAVORITES_LINE" ]]; then
-        echo "[*] Synchronisiere Whisker-Menu-Favoriten..." | tee -a "$LOG_FILE"
-        IFS=',' read -ra FAV_ARRAY <<< "$FAVORITES_LINE"
-        XFCONF_ARGS=()
-        for entry in "${FAV_ARRAY[@]}"; do
-            XFCONF_ARGS+=(--type string --set "$entry")
-        done
-        sudo -u "$SUDO_USER" xfconf-query -c xfce4-panel \
-            -p /plugins/plugin-1/favorites --create --force-array \
-            "${XFCONF_ARGS[@]}" 2>/dev/null || true
-    fi
-fi
-
 echo "[*] Räume auf..." | tee -a "$LOG_FILE"
 apt-get autoremove -y > /dev/null
 apt-get autoclean   > /dev/null
 
 echo "[+] $(date '+%Y-%m-%d %H:%M:%S') Setup erfolgreich abgeschlossen." | tee -a "$LOG_FILE"
-echo "[+] Log gespeichert unter: $LOG_FILE"
+
+# --- Spuren entfernen: saubere VM fuer Studierende ---
+echo "[*] Bereinige Logs und Shell-History..."
+rm -f "$LOG_FILE"
+
+# Shell-History (kali + root)
+rm -f /home/"$SUDO_USER"/.zsh_history /home/"$SUDO_USER"/.bash_history
+rm -f /root/.zsh_history /root/.bash_history
+
+# System-Logs
+rm -rf /var/log/apt/*
+rm -f /var/log/auth.log* /var/log/syslog* /var/log/messages*
+rm -f /var/log/kern.log* /var/log/daemon.log* /var/log/dpkg.log*
+rm -f /var/log/alternatives.log* /var/log/bootstrap.log
+journalctl --rotate --vacuum-time=1s > /dev/null 2>&1 || true
+
+# Temp-Dateien
+rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
+
+echo "[+] Setup abgeschlossen. VM ist bereit."
