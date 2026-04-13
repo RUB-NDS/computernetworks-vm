@@ -52,16 +52,17 @@ Type=Application
 Name=Tor Browser (Nightly)
 GenericName=Web Browser
 Comment=Tor Browser Nightly – ARM64
-Exec=$INSTALL_DIR/start-tor-browser --detach
-Icon=$INSTALL_DIR/browser/chrome/icons/default/default128.png
+Exec=$INSTALL_DIR/Browser/start-tor-browser --detach
+Icon=$INSTALL_DIR/Browser/browser/chrome/icons/default/default128.png
 Terminal=false
 Categories=Network;WebBrowser;
 StartupWMClass=Tor Browser
 EOF
         chmod 644 /usr/share/applications/tor-browser.desktop
+        update-desktop-database /usr/share/applications > /dev/null 2>&1 || true
 
         echo "[30-tor] Tor Browser Nightly installiert unter $INSTALL_DIR"
     fi
 
-    echo "[30-tor] Fertig. Starten mit: $INSTALL_DIR/start-tor-browser"
+    echo "[30-tor] Fertig. Starten mit: $INSTALL_DIR/Browser/start-tor-browser"
 fi
