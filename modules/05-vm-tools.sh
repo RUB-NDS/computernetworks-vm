@@ -31,4 +31,17 @@ case "$VIRT" in
         ;;
 esac
 
+# Shared-Folder via VirtFS (9p) einrichten
+REAL_USER="${SUDO_USER:-kali}"
+SHARE_DIR="/home/$REAL_USER/shared"
+FSTAB_ENTRY="share $SHARE_DIR 9p trans=virtio,version=9p2000.L,rw,_netdev,nofail,auto 0 0"
+
+if ! grep -q "^share $SHARE_DIR 9p" /etc/fstab 2>/dev/null; then
+    echo "[05-vm-tools] Richte VirtFS Shared-Folder ein..."
+    mkdir -p "$SHARE_DIR"
+    chown "$REAL_USER:$REAL_USER" "$SHARE_DIR"
+    echo "$FSTAB_ENTRY" >> /etc/fstab
+    mount "$SHARE_DIR" 2>/dev/null || echo "[05-vm-tools] HINWEIS: Share nicht gemountet (in UTM erst Ordner konfigurieren)."
+fi
+
 echo "[05-vm-tools] Fertig."
