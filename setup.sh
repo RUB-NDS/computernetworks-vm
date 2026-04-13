@@ -60,6 +60,24 @@ for mod in "${MODULES[@]}"; do
 done
 
 echo "" | tee -a "$LOG_FILE"
+
+# Whisker-Menu-Favoriten in laufende Sitzung uebernehmen
+WHISKER_DEFAULTS="/etc/xdg/xfce4/whiskermenu/defaults.rc"
+if [[ -f "$WHISKER_DEFAULTS" ]]; then
+    FAVORITES_LINE=$(grep '^favorites=' "$WHISKER_DEFAULTS" | cut -d= -f2)
+    if [[ -n "$FAVORITES_LINE" ]]; then
+        echo "[*] Synchronisiere Whisker-Menu-Favoriten..." | tee -a "$LOG_FILE"
+        IFS=',' read -ra FAV_ARRAY <<< "$FAVORITES_LINE"
+        XFCONF_ARGS=()
+        for entry in "${FAV_ARRAY[@]}"; do
+            XFCONF_ARGS+=(--type string --set "$entry")
+        done
+        sudo -u "$SUDO_USER" xfconf-query -c xfce4-panel \
+            -p /plugins/plugin-1/favorites --create --force-array \
+            "${XFCONF_ARGS[@]}" 2>/dev/null || true
+    fi
+fi
+
 echo "[*] Räume auf..." | tee -a "$LOG_FILE"
 apt-get autoremove -y > /dev/null
 apt-get autoclean   > /dev/null
