@@ -7,7 +7,9 @@ CA_LABEL="${COURSE_CA_NAME:-kali-course Root CA}"
 CA_FILE_NAME="${COURSE_ID:-kali-course}-ca.crt"
 CHROME_DB="/home/$REAL_USER/.pki/nssdb"
 
-echo "[20-browsers] Konfiguriere Browser und System-Trust-Stores..."
+ARCH="$(dpkg --print-architecture)"
+
+echo "[20-browsers] Konfiguriere Browser und System-Trust-Stores (Arch: $ARCH)..."
 
 apt-get -qq install -y libnss3-tools > /dev/null 2>&1
 
@@ -15,11 +17,17 @@ cp "$CA_CERT" "/usr/local/share/ca-certificates/${CA_FILE_NAME}"
 update-ca-certificates -f > /dev/null 2>&1
 
 if ! command -v google-chrome &>/dev/null; then
-    echo "[20-browsers] Installiere Google Chrome..."
-    curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-        -o /tmp/chrome.deb
-    apt-get -qq install -y /tmp/chrome.deb > /dev/null 2>&1
-    rm /tmp/chrome.deb
+    CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_${ARCH}.deb"
+    echo "[20-browsers] Versuche Google Chrome fuer $ARCH herunterzuladen..."
+    if curl -fsSL "$CHROME_URL" -o /tmp/chrome.deb 2>/dev/null; then
+        apt-get -qq install -y /tmp/chrome.deb > /dev/null 2>&1
+        rm -f /tmp/chrome.deb
+        echo "[20-browsers] Google Chrome installiert."
+    else
+        rm -f /tmp/chrome.deb
+        echo "[20-browsers] Chrome fuer $ARCH nicht verfuegbar, installiere Chromium als Fallback..."
+        apt-get -qq install -y chromium > /dev/null 2>&1
+    fi
 else
     echo "[20-browsers] Google Chrome bereits installiert, überspringe."
 fi
@@ -43,5 +51,15 @@ for policy_dir in /etc/firefox-esr/policies /etc/firefox/policies; do
 }
 EOF
 done
+
+# Browser zu XFCE Whisker-Menu-Favoriten hinzufuegen
+WHISKER_DEFAULTS="/etc/xdg/xfce4/whiskermenu/defaults.rc"
+if [[ -f "$WHISKER_DEFAULTS" ]]; then
+    BROWSER_DESKTOP=$(find /usr/share/applications -maxdepth 1 \( -name 'google-chrome*.desktop' -o -name 'chromium*.desktop' \) -printf '%f\n' 2>/dev/null | head -1)
+    if [[ -n "$BROWSER_DESKTOP" ]] && ! grep -q "$BROWSER_DESKTOP" "$WHISKER_DEFAULTS" 2>/dev/null; then
+        sed -i "s/^favorites=\(.*\)/favorites=\1,$BROWSER_DESKTOP/" "$WHISKER_DEFAULTS"
+        echo "[20-browsers] $BROWSER_DESKTOP zu Whisker-Menu-Favoriten hinzugefuegt."
+    fi
+fi
 
 echo "[20-browsers] Fertig."

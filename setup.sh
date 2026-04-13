@@ -31,10 +31,11 @@ export SUDO_USER="${SUDO_USER:-kali}"
 export DEBIAN_FRONTEND=noninteractive
 # ============================================================
 
-SERVER="${KALI_SETUP_SERVER:-https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/main/}"
+BRANCH="${KALI_SETUP_BRANCH:-main}"
+SERVER="${KALI_SETUP_SERVER:-https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/${BRANCH}/}"
 MODULE_DIR="/tmp/kali-modules"
 LOG_FILE="/var/log/kali-setup.log"
-MODULES=(00-base 05-vm-tools 10-apache-ssl 20-browsers 30-tor 40-docker 50-locale 60-hosts 70-vscode)
+MODULES=(00-base 05-vm-tools 10-apache-ssl 20-browsers 30-tor 35-burpsuite 40-docker 50-locale 60-hosts 70-vscode)
 
 mkdir -p "$MODULE_DIR"
 trap 'rm -rf "$MODULE_DIR"' EXIT
@@ -64,4 +65,23 @@ apt-get autoremove -y > /dev/null
 apt-get autoclean   > /dev/null
 
 echo "[+] $(date '+%Y-%m-%d %H:%M:%S') Setup erfolgreich abgeschlossen." | tee -a "$LOG_FILE"
-echo "[+] Log gespeichert unter: $LOG_FILE"
+
+# --- Spuren entfernen: saubere VM fuer Studierende ---
+echo "[*] Bereinige Logs und Shell-History..."
+rm -f "$LOG_FILE"
+
+# Shell-History (kali + root)
+rm -f /home/"$SUDO_USER"/.zsh_history /home/"$SUDO_USER"/.bash_history
+rm -f /root/.zsh_history /root/.bash_history
+
+# System-Logs
+rm -rf /var/log/apt/*
+rm -f /var/log/auth.log* /var/log/syslog* /var/log/messages*
+rm -f /var/log/kern.log* /var/log/daemon.log* /var/log/dpkg.log*
+rm -f /var/log/alternatives.log* /var/log/bootstrap.log
+journalctl --rotate --vacuum-time=1s > /dev/null 2>&1 || true
+
+# Temp-Dateien
+rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
+
+echo "[+] Setup abgeschlossen. VM ist bereit."

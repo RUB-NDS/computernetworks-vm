@@ -43,4 +43,11 @@ for EXT in "${EXTENSIONS[@]}"; do
     fi
 done
 
+# VS Code zu XFCE Whisker-Menu-Favoriten hinzufuegen
+WHISKER_DEFAULTS="/etc/xdg/xfce4/whiskermenu/defaults.rc"
+if [[ -f "$WHISKER_DEFAULTS" ]] && ! grep -q 'code.desktop' "$WHISKER_DEFAULTS" 2>/dev/null; then
+    sed -i 's/^favorites=\(.*\)/favorites=\1,code.desktop/' "$WHISKER_DEFAULTS"
+    echo "[70-vscode] VS Code zu Whisker-Menu-Favoriten hinzugefuegt."
+fi
+
 echo "[70-vscode] Fertig."
