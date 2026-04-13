@@ -31,17 +31,30 @@ case "$VIRT" in
         ;;
 esac
 
-# Shared-Folder via VirtFS (9p) einrichten
+# Shared-Folder einrichten (VirtFS oder SPICE WebDAV)
 REAL_USER="${SUDO_USER:-kali}"
 SHARE_DIR="/home/$REAL_USER/shared"
-FSTAB_ENTRY="share $SHARE_DIR 9p trans=virtio,version=9p2000.L,rw,_netdev,nofail,auto 0 0"
+mkdir -p "$SHARE_DIR"
+chown "$REAL_USER:$REAL_USER" "$SHARE_DIR"
 
+# VirtFS (9p) — fuer UTM mit VirtFS-Sharing
+FSTAB_9P="share $SHARE_DIR 9p trans=virtio,version=9p2000.L,rw,_netdev,nofail,noauto,x-systemd.automount 0 0"
 if ! grep -q "^share $SHARE_DIR 9p" /etc/fstab 2>/dev/null; then
-    echo "[05-vm-tools] Richte VirtFS Shared-Folder ein..."
-    mkdir -p "$SHARE_DIR"
-    chown "$REAL_USER:$REAL_USER" "$SHARE_DIR"
-    echo "$FSTAB_ENTRY" >> /etc/fstab
-    mount "$SHARE_DIR" 2>/dev/null || echo "[05-vm-tools] HINWEIS: Share nicht gemountet (in UTM erst Ordner konfigurieren)."
+    echo "[05-vm-tools] Richte VirtFS (9p) Shared-Folder ein..."
+    echo "$FSTAB_9P" >> /etc/fstab
+fi
+
+# SPICE WebDAV — fuer UTM mit SPICE-Sharing
+echo "[05-vm-tools] Installiere SPICE WebDAV Unterstuetzung..."
+apt-get -qq install -y spice-webdavd davfs2 > /dev/null 2>&1 || true
+systemctl enable --now spice-webdavd > /dev/null 2>&1 || true
+FSTAB_DAV="http://localhost:9843 $SHARE_DIR davfs _netdev,nofail,noauto,x-systemd.automount,user 0 0"
+if ! grep -q "localhost:9843" /etc/fstab 2>/dev/null; then
+    echo "[05-vm-tools] Richte SPICE WebDAV Shared-Folder ein..."
+    # davfs2 ohne Passwort-Abfrage konfigurieren
+    mkdir -p /etc/davfs2
+    echo "http://localhost:9843 \"\" \"\"" >> /etc/davfs2/secrets
+    echo "$FSTAB_DAV" >> /etc/fstab
 fi
 
 echo "[05-vm-tools] Fertig."
