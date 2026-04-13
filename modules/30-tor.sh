@@ -28,7 +28,7 @@ else
     INSTALL_DIR="/opt/tor-browser"
 
     if [[ -d "$INSTALL_DIR" ]]; then
-        echo "[30-tor] Tor Browser bereits installiert unter $INSTALL_DIR, ueberspringe."
+        echo "[30-tor] Tor Browser bereits installiert unter $INSTALL_DIR, ueberspringe Download."
     else
         echo "[30-tor] Lade Tor Browser Nightly fuer aarch64 herunter..."
 
@@ -53,8 +53,11 @@ else
         rm -f "/tmp/$TARBALL"
         chown -R "$REAL_USER:$REAL_USER" "$INSTALL_DIR"
 
-        # Desktop-Eintrag erstellen
-        cat > /usr/share/applications/tor-browser.desktop <<EOF
+        echo "[30-tor] Tor Browser Nightly installiert unter $INSTALL_DIR"
+    fi
+
+    # Desktop-Eintrag sicherstellen (auch bei Re-Runs)
+    cat > /usr/share/applications/tor-browser.desktop <<EOF
 [Desktop Entry]
 Type=Application
 Name=Tor Browser (Nightly)
@@ -66,11 +69,8 @@ Terminal=false
 Categories=Network;WebBrowser;
 StartupWMClass=Tor Browser
 EOF
-        chmod 644 /usr/share/applications/tor-browser.desktop
-        update-desktop-database /usr/share/applications > /dev/null 2>&1 || true
-
-        echo "[30-tor] Tor Browser Nightly installiert unter $INSTALL_DIR"
-    fi
+    chmod 644 /usr/share/applications/tor-browser.desktop
+    update-desktop-database /usr/share/applications > /dev/null 2>&1 || true
 
     # Tor Browser zu XFCE Whisker-Menu-Favoriten hinzufuegen
     WHISKER_DEFAULTS="/etc/xdg/xfce4/whiskermenu/defaults.rc"

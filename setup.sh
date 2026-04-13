@@ -35,7 +35,7 @@ BRANCH="${KALI_SETUP_BRANCH:-main}"
 SERVER="${KALI_SETUP_SERVER:-https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/${BRANCH}/}"
 MODULE_DIR="/tmp/kali-modules"
 LOG_FILE="/var/log/kali-setup.log"
-MODULES=(00-base 05-vm-tools 10-apache-ssl 20-browsers 30-tor 40-docker 50-locale 60-hosts 70-vscode)
+MODULES=(00-base 05-vm-tools 10-apache-ssl 20-browsers 30-tor 35-burpsuite 40-docker 50-locale 60-hosts 70-vscode)
 
 mkdir -p "$MODULE_DIR"
 trap 'rm -rf "$MODULE_DIR"' EXIT
