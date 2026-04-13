@@ -53,12 +53,11 @@ EOF
 done
 
 # Browser zu XFCE Whisker-Menu-Favoriten hinzufuegen
-WHISKER_RC=$(find "/home/$REAL_USER/.config/xfce4/panel" -name 'whiskermenu-*.rc' 2>/dev/null | head -1)
-if [[ -n "$WHISKER_RC" ]]; then
-    # Passendes .desktop-File finden (Chrome oder Chromium)
+WHISKER_DEFAULTS="/etc/xdg/xfce4/whiskermenu/defaults.rc"
+if [[ -f "$WHISKER_DEFAULTS" ]]; then
     BROWSER_DESKTOP=$(find /usr/share/applications -maxdepth 1 \( -name 'google-chrome*.desktop' -o -name 'chromium*.desktop' \) -printf '%f\n' 2>/dev/null | head -1)
-    if [[ -n "$BROWSER_DESKTOP" ]] && ! grep -q "$BROWSER_DESKTOP" "$WHISKER_RC" 2>/dev/null; then
-        sed -i "s/^favorites=\(.*\)/favorites=$BROWSER_DESKTOP;\1/" "$WHISKER_RC"
+    if [[ -n "$BROWSER_DESKTOP" ]] && ! grep -q "$BROWSER_DESKTOP" "$WHISKER_DEFAULTS" 2>/dev/null; then
+        sed -i "s/^favorites=\(.*\)/favorites=\1,$BROWSER_DESKTOP/" "$WHISKER_DEFAULTS"
         echo "[20-browsers] $BROWSER_DESKTOP zu Whisker-Menu-Favoriten hinzugefuegt."
     fi
 fi
