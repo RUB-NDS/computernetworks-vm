@@ -18,8 +18,17 @@
     line: 'PasswordAuthentication yes'
   notify: Restart SSH
 
-- name: Enable and start SSH service
+- name: Enable and start SSH service (ssh)
   ansible.builtin.systemd:
     name: ssh
     enabled: true
     state: started
+  register: ssh_service
+  failed_when: false
+
+- name: Enable and start SSH service (sshd fallback)
+  ansible.builtin.systemd:
+    name: sshd
+    enabled: true
+    state: started
+  when: ssh_service is failed
