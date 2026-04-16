@@ -18,11 +18,11 @@ REAL_USER="${SUDO_USER:-kali}"
 echo "[*] $(date '+%Y-%m-%d %H:%M:%S') Kali Setup startet (User: $REAL_USER)" | tee -a "$LOG_FILE"
 
 # --- 1. APT-Quellen sicherstellen ---
-SOURCES_LIST="/etc/apt/sources.list"
 KALI_REPO="deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware"
-if ! grep -q "^deb .*kali" "$SOURCES_LIST" 2>/dev/null; then
+if ! grep -rq "^deb .*kali" /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null && \
+   ! grep -rq "^URIs:.*kali" /etc/apt/sources.list.d/ 2>/dev/null; then
     echo "[*] Kali APT-Quellen nicht gefunden, richte ein..." | tee -a "$LOG_FILE"
-    echo "$KALI_REPO" > "$SOURCES_LIST"
+    echo "$KALI_REPO" > /etc/apt/sources.list
 fi
 
 # --- 2. Ansible und Git installieren ---
