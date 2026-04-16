@@ -1,0 +1,6 @@
+---
+# Chrome is not reliably available for arm64 – use Chromium from the repo
+- name: Install Chromium
+  ansible.builtin.apt:
+    name: chromium
+    state: present

@@ -1,0 +1,80 @@
+---
+# No torbrowser-launcher for arm64 – install nightly build manually
+- name: Check if Tor Browser is already installed
+  ansible.builtin.stat:
+    path: /opt/tor-browser
+  register: tor_browser_dir
+
+- name: Get latest Tor Browser nightly date
+  ansible.builtin.shell:
+    cmd: |
+      curl -fsSL "https://nightlies.tbb.torproject.org/nightly-builds/tor-browser-builds/" \
+        | grep -oP 'tbb-nightly\.\K[0-9]{4}\.[0-9]{2}\.[0-9]{2}' \
+        | sort -r | head -1
+  register: tor_nightly_date
+  changed_when: false
+  failed_when: false
+  when: not tor_browser_dir.stat.exists
+
+- name: Download Tor Browser nightly
+  ansible.builtin.get_url:
+    url: "https://nightlies.tbb.torproject.org/nightly-builds/tor-browser-builds/tbb-nightly.{{ tor_nightly_date.stdout }}/nightly-linux-aarch64/tor-browser-linux-aarch64-tbb-nightly.{{ tor_nightly_date.stdout }}.tar.xz"
+    dest: /tmp/tor-browser-nightly.tar.xz
+    mode: "0644"
+  when:
+    - not tor_browser_dir.stat.exists
+    - (tor_nightly_date.stdout | default('')) | length > 0
+
+- name: Create Tor Browser directory
+  ansible.builtin.file:
+    path: /opt/tor-browser
+    state: directory
+    mode: "0755"
+  when:
+    - not tor_browser_dir.stat.exists
+    - (tor_nightly_date.stdout | default('')) | length > 0
+
+- name: Extract Tor Browser nightly
+  ansible.builtin.unarchive:
+    src: /tmp/tor-browser-nightly.tar.xz
+    dest: /opt/tor-browser
+    remote_src: true
+    extra_opts: ['--strip-components=1']
+  when:
+    - not tor_browser_dir.stat.exists
+    - (tor_nightly_date.stdout | default('')) | length > 0
+
+- name: Set Tor Browser ownership
+  ansible.builtin.file:
+    path: /opt/tor-browser
+    state: directory
+    recurse: true
+    owner: "{{ setup_user }}"
+    group: "{{ setup_user }}"
+  when:
+    - not tor_browser_dir.stat.exists
+    - (tor_nightly_date.stdout | default('')) | length > 0
+
+- name: Clean up Tor Browser tarball
+  ansible.builtin.file:
+    path: /tmp/tor-browser-nightly.tar.xz
+    state: absent
+
+- name: Deploy Tor Browser desktop entry
+  ansible.builtin.template:
+    src: tor-browser.desktop.j2
+    dest: /usr/share/applications/tor-browser.desktop
+    mode: "0644"
+
+- name: Update desktop database
+  ansible.builtin.command: update-desktop-database /usr/share/applications
+  changed_when: false
+  failed_when: false
+
+- name: Add Tor Browser to Whisker menu favorites
+  ansible.builtin.lineinfile:
+    path: "{{ whisker_defaults }}"
+    regexp: '^(favorites=(?!.*tor-browser\.desktop).*)$'
+    line: '\1,tor-browser.desktop'
+    backrefs: true
+  when: whisker_stat.stat.exists

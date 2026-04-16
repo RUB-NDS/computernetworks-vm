@@ -1,0 +1,22 @@
+---
+# torbrowser-launcher handles download and signature verification
+- name: Install Torbrowser Launcher
+  ansible.builtin.apt:
+    name: torbrowser-launcher
+    state: present
+
+- name: Find Tor Browser desktop file
+  ansible.builtin.shell:
+    cmd: "find /usr/share/applications -maxdepth 1 -name '*torbrowser*' -printf '%f\\n' 2>/dev/null | head -1"
+  register: tor_desktop
+  changed_when: false
+
+- name: Add Tor Browser to Whisker menu favorites
+  ansible.builtin.lineinfile:
+    path: "{{ whisker_defaults }}"
+    regexp: '^(favorites=(?!.*{{ tor_desktop.stdout }}).*)$'
+    line: '\1,{{ tor_desktop.stdout }}'
+    backrefs: true
+  when:
+    - whisker_stat.stat.exists
+    - tor_desktop.stdout | length > 0

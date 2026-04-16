@@ -4,6 +4,7 @@
     name: libnss3-tools
     state: present
 
+# --- System trust store ---
 - name: Copy CA certificate to system trust store
   ansible.builtin.copy:
     src: "{{ course_cert_dir }}/ca.crt"
@@ -15,44 +16,17 @@
   ansible.builtin.command: update-ca-certificates -f
   changed_when: false
 
-# --- Google Chrome / Chromium ---
-- name: Check if Google Chrome is installed
-  ansible.builtin.command: which google-chrome
-  register: chrome_check
-  changed_when: false
-  failed_when: false
+# --- Architecture-specific browser installation ---
+- name: Include amd64 browser tasks
+  ansible.builtin.include_tasks: amd64.yml
+  when: dpkg_arch == 'amd64'
 
-- name: Download Google Chrome .deb
-  ansible.builtin.get_url:
-    url: "https://dl.google.com/linux/direct/google-chrome-stable_current_{{ dpkg_arch }}.deb"
-    dest: /tmp/chrome.deb
-    mode: "0644"
-  when: chrome_check.rc != 0
-  register: chrome_download
-  failed_when: false
+- name: Include arm64 browser tasks
+  ansible.builtin.include_tasks: arm64.yml
+  when: dpkg_arch != 'amd64'
 
-- name: Install Google Chrome
-  ansible.builtin.apt:
-    deb: /tmp/chrome.deb
-  when:
-    - chrome_check.rc != 0
-    - chrome_download is not failed
-
-- name: Remove Chrome installer
-  ansible.builtin.file:
-    path: /tmp/chrome.deb
-    state: absent
-
-- name: Install Chromium as fallback
-  ansible.builtin.apt:
-    name: chromium
-    state: present
-  when:
-    - chrome_check.rc != 0
-    - chrome_download is failed
-
-# --- Chrome NSS database ---
-- name: Create Chrome NSS database directory
+# --- Chrome / Chromium NSS database ---
+- name: Create NSS database directory
   ansible.builtin.file:
     path: "/home/{{ setup_user }}/.pki/nssdb"
     state: directory
@@ -60,23 +34,23 @@
     group: "{{ setup_user }}"
     mode: "0700"
 
-- name: Check if Chrome NSS database exists
+- name: Check if NSS database exists
   ansible.builtin.stat:
     path: "/home/{{ setup_user }}/.pki/nssdb/cert9.db"
   register: nssdb_stat
 
-- name: Initialize Chrome NSS database
+- name: Initialize NSS database
   become_user: "{{ setup_user }}"
   ansible.builtin.command: 'certutil -N --empty-password -d "sql:/home/{{ setup_user }}/.pki/nssdb"'
   when: not nssdb_stat.stat.exists
 
-- name: Remove old CA from Chrome NSS database
+- name: Remove old CA from NSS database
   become_user: "{{ setup_user }}"
   ansible.builtin.command: 'certutil -D -n "{{ course_ca_name }}" -d "sql:/home/{{ setup_user }}/.pki/nssdb"'
   changed_when: false
   failed_when: false
 
-- name: Import CA into Chrome NSS database
+- name: Import CA into NSS database
   become_user: "{{ setup_user }}"
   ansible.builtin.command: >
     certutil -A -n "{{ course_ca_name }}" -t "CT,C,C"
