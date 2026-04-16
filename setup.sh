@@ -35,12 +35,7 @@ ANSIBLE_FORCE_COLOR=1 ansible-playbook \
     --extra-vars "setup_user=$REAL_USER" \
     2>&1 | tee -a "$LOG_FILE"
 
-# --- 4. Commit-Hash speichern (verhindert erneuten Lauf beim ersten Boot) ---
-COMMIT_HASH=$(git -C "$CLONE_DIR" rev-parse HEAD)
-mkdir -p /var/lib/kali-setup
-echo "$COMMIT_HASH" > /var/lib/kali-setup/last-commit
-
-# --- 5. Aufraeumen ---
+# --- 4. Aufraeumen ---
 rm -rf "$CLONE_DIR"
 rm -f "$LOG_FILE"
 rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
