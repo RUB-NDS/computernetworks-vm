@@ -1,18 +1,9 @@
 ---
-# Try torbrowser-launcher from repo first, fall back to manual install
-- name: Try to install torbrowser-launcher
-  ansible.builtin.apt:
-    name: torbrowser-launcher
-    state: present
-  register: torbrowser_apt
-  failed_when: false
-
-# --- Manual install if package not available ---
+# Download official stable release directly (torbrowser-launcher is just a stub)
 - name: Check if Tor Browser is already installed
   ansible.builtin.stat:
     path: /opt/tor-browser
   register: tor_browser_dir
-  when: torbrowser_apt is failed
 
 - name: Get latest Tor Browser stable version
   ansible.builtin.shell:
@@ -23,9 +14,7 @@
   register: tor_stable_version
   changed_when: false
   failed_when: false
-  when:
-    - torbrowser_apt is failed
-    - not (tor_browser_dir.stat.exists | default(false))
+  when: not tor_browser_dir.stat.exists
 
 - name: Download Tor Browser stable
   ansible.builtin.get_url:
@@ -33,8 +22,7 @@
     dest: /tmp/tor-browser-stable.tar.xz
     mode: "0644"
   when:
-    - torbrowser_apt is failed
-    - not (tor_browser_dir.stat.exists | default(false))
+    - not tor_browser_dir.stat.exists
     - (tor_stable_version.stdout | default('')) | length > 0
 
 - name: Create Tor Browser directory
@@ -43,8 +31,7 @@
     state: directory
     mode: "0755"
   when:
-    - torbrowser_apt is failed
-    - not (tor_browser_dir.stat.exists | default(false))
+    - not tor_browser_dir.stat.exists
     - (tor_stable_version.stdout | default('')) | length > 0
 
 - name: Extract Tor Browser stable
@@ -54,8 +41,7 @@
     remote_src: true
     extra_opts: ['--strip-components=1']
   when:
-    - torbrowser_apt is failed
-    - not (tor_browser_dir.stat.exists | default(false))
+    - not tor_browser_dir.stat.exists
     - (tor_stable_version.stdout | default('')) | length > 0
 
 - name: Set Tor Browser ownership
@@ -66,41 +52,36 @@
     owner: "{{ setup_user }}"
     group: "{{ setup_user }}"
   when:
-    - torbrowser_apt is failed
-    - not (tor_browser_dir.stat.exists | default(false))
+    - not tor_browser_dir.stat.exists
     - (tor_stable_version.stdout | default('')) | length > 0
 
 - name: Clean up Tor Browser tarball
   ansible.builtin.file:
     path: /tmp/tor-browser-stable.tar.xz
     state: absent
-  when: torbrowser_apt is failed
 
 - name: Deploy Tor Browser desktop entry
   ansible.builtin.template:
     src: tor-browser.desktop.j2
     dest: /usr/share/applications/tor-browser.desktop
     mode: "0644"
-  when: torbrowser_apt is failed
 
 - name: Update desktop database
   ansible.builtin.command: update-desktop-database /usr/share/applications
   changed_when: false
   failed_when: false
-  when: torbrowser_apt is failed
 
-# --- Whisker menu (works for both install methods) ---
 - name: Find Tor Browser desktop file
   ansible.builtin.shell:
-    cmd: "find /usr/share/applications -maxdepth 1 -name '*torbrowser*' -o -name 'tor-browser.desktop' -printf '%f\\n' 2>/dev/null | head -1"
+    cmd: "find /usr/share/applications -maxdepth 1 -name 'tor-browser.desktop' -printf '%f\\n' 2>/dev/null | head -1"
   register: tor_desktop
   changed_when: false
 
 - name: Add Tor Browser to Whisker menu favorites
   ansible.builtin.lineinfile:
     path: "{{ whisker_defaults }}"
-    regexp: '^(favorites=(?!.*{{ tor_desktop.stdout }}).*)$'
-    line: '\1,{{ tor_desktop.stdout }}'
+    regexp: '^(favorites=(?!.*tor-browser\.desktop).*)$'
+    line: '\1,tor-browser.desktop'
     backrefs: true
   when:
     - whisker_stat.stat.exists
