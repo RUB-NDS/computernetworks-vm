@@ -40,7 +40,7 @@ echo "[*] Starte Ansible Playbook..." | tee -a "$LOG_FILE"
 ANSIBLE_FORCE_COLOR=1 ansible-playbook \
     -i "$CLONE_DIR/ansible/inventory.yml" \
     "$CLONE_DIR/ansible/playbook.yml" \
-    --extra-vars "setup_user=$REAL_USER" \
+    --extra-vars "setup_user=$REAL_USER repo_branch=$BRANCH" \
     2>&1 | tee -a "$LOG_FILE"
 
 # --- 5. Aufraeumen ---
