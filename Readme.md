@@ -15,13 +15,13 @@ Oeffnet ein Terminal und fuehrt folgenden Befehl aus:
 
 ```bash
 wget -qO- https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/feature/ansible-playbook/setup.sh \
-  | sudo KALI_SETUP_BRANCH=feature/ansible-playbook bash
+  | sudo bash -s -- feature/ansible-playbook
 ```
 
 Falls `wget` nicht verfuegbar ist, alternativ mit `curl`:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/feature/ansible-playbook/setup.sh \
-  | sudo KALI_SETUP_BRANCH=feature/ansible-playbook bash
+  | sudo bash -s -- feature/ansible-playbook
 ```
 
 > **Hinweis:** Der Befehl benoetigt Root-Rechte. Gebt euer Passwort ein,

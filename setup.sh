@@ -9,7 +9,7 @@ fi
 # ============================================================
 # KONFIGURATION
 # ============================================================
-BRANCH="${KALI_SETUP_BRANCH:-main}"
+BRANCH="${1:-${KALI_SETUP_BRANCH:-main}}"
 REPO_URL="https://github.com/RUB-NDS/computernetworks-vm.git"
 CLONE_DIR="/tmp/computernetworks-vm"
 LOG_FILE="/var/log/kali-setup.log"
