@@ -23,7 +23,7 @@
 
 - name: Include arm64 browser tasks
   ansible.builtin.include_tasks: arm64.yml
-  when: dpkg_arch != 'amd64'
+  when: dpkg_arch == 'arm64'
 
 # --- Chrome / Chromium NSS database ---
 - name: Create NSS database directory
