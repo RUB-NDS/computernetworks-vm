@@ -16,6 +16,7 @@
 
   roles:
     - base
+    - ssh
     - vm_tools
     - apache_ssl
     - browsers

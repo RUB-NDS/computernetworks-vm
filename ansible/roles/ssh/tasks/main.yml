@@ -1,0 +1,25 @@
+---
+- name: Install OpenSSH server
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+
+- name: Permit root login with password
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?\s*PermitRootLogin'
+    line: 'PermitRootLogin yes'
+  notify: Restart SSH
+
+- name: Enable password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?\s*PasswordAuthentication'
+    line: 'PasswordAuthentication yes'
+  notify: Restart SSH
+
+- name: Enable and start SSH service
+  ansible.builtin.systemd:
+    name: ssh
+    enabled: true
+    state: started
