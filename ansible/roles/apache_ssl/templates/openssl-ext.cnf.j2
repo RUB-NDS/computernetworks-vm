@@ -1,0 +1,10 @@
+basicConstraints = CA:FALSE
+extendedKeyUsage = serverAuth
+subjectAltName   = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+{% for domain in course_domains %}
+DNS.{{ loop.index + 1 }} = {{ domain }}
+{% endfor %}
+IP.1  = 127.0.0.1

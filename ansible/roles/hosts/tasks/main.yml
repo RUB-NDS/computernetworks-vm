@@ -1,0 +1,24 @@
+---
+- name: Get Docker bridge IP address
+  ansible.builtin.shell:
+    cmd: "ip -4 addr show docker0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1"
+  register: docker_bridge_result
+  changed_when: false
+  failed_when: false
+
+- name: Set Docker bridge IP fact
+  ansible.builtin.set_fact:
+    docker_bridge_ip: "{{ docker_bridge_result.stdout if docker_bridge_result.stdout | length > 0 else '172.17.0.1' }}"
+
+- name: Configure course domains in /etc/hosts
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} {{ course_title | upper }} DOMAINS"
+    block: |
+      {% for domain in course_domains %}
+      {% if domain == course_docker_domain %}
+      {{ docker_bridge_ip }}  {{ domain }}
+      {% else %}
+      127.0.0.1         {{ domain }}
+      {% endif %}
+      {% endfor %}

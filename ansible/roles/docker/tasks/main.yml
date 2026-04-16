@@ -1,0 +1,54 @@
+---
+- name: Check if Docker repository is configured
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/docker.list
+  register: docker_repo
+
+- name: Create apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  when: not docker_repo.stat.exists
+
+- name: Download Docker GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+  when: not docker_repo.stat.exists
+
+- name: Add Docker apt repository
+  ansible.builtin.copy:
+    content: "deb [arch={{ dpkg_arch }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable"
+    dest: /etc/apt/sources.list.d/docker.list
+    mode: "0644"
+  when: not docker_repo.stat.exists
+  notify: Update apt cache for Docker
+
+- name: Flush handlers to update apt cache
+  ansible.builtin.meta: flush_handlers
+
+- name: Install Docker packages
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    install_recommends: false
+
+- name: Enable and start Docker service
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+  failed_when: false
+
+- name: Add user to docker group
+  ansible.builtin.user:
+    name: "{{ setup_user }}"
+    groups: docker
+    append: true

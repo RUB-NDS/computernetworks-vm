@@ -1,0 +1,30 @@
+---
+- name: Remove unnecessary packages
+  ansible.builtin.apt:
+    autoremove: true
+    autoclean: true
+
+- name: Remove shell history files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/home/{{ setup_user }}/.zsh_history"
+    - "/home/{{ setup_user }}/.bash_history"
+    - /root/.zsh_history
+    - /root/.bash_history
+
+- name: Remove log files
+  ansible.builtin.shell:
+    cmd: |
+      rm -rf /var/log/apt/*
+      rm -f /var/log/auth.log* /var/log/syslog* /var/log/messages*
+      rm -f /var/log/kern.log* /var/log/daemon.log* /var/log/dpkg.log*
+      rm -f /var/log/alternatives.log* /var/log/bootstrap.log
+  changed_when: false
+  failed_when: false
+
+- name: Vacuum journal logs
+  ansible.builtin.command: journalctl --rotate --vacuum-time=1s
+  changed_when: false
+  failed_when: false

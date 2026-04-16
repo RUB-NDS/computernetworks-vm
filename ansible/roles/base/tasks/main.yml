@@ -1,0 +1,73 @@
+---
+- name: Set root password
+  ansible.builtin.user:
+    name: root
+    password: "{{ root_password | password_hash('sha512') }}"
+
+- name: Set user password
+  ansible.builtin.user:
+    name: "{{ setup_user }}"
+    password: "{{ user_password | password_hash('sha512') }}"
+
+- name: Set user shell to zsh
+  ansible.builtin.user:
+    name: "{{ setup_user }}"
+    shell: /usr/bin/zsh
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 0
+
+- name: Upgrade all packages (dist-upgrade)
+  ansible.builtin.apt:
+    upgrade: dist
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - wget
+      - htop
+      - tree
+      - tmux
+      - fzf
+      - ripgrep
+      - tealdeer
+      - httpie
+      - fish
+      - zsh
+      - eza
+    state: present
+    install_recommends: false
+
+- name: Add shell aliases to .zshrc
+  ansible.builtin.blockinfile:
+    path: "/home/{{ setup_user }}/.zshrc"
+    marker: "# {mark} KALI VM ALIASES"
+    block: |
+      alias updates="sudo apt update && sudo apt upgrade -y && sudo apt dist-upgrade -y && sudo apt full-upgrade -y && sudo apt autoremove -y && sudo apt autoclean"
+      alias cleanup="sudo rm -f ~/.zsh_history ~/.bash_history /root/.zsh_history /root/.bash_history /var/log/kali-setup.log /var/log/auth.log* /var/log/syslog* /var/log/messages* /var/log/kern.log* /var/log/daemon.log* /var/log/dpkg.log* /var/log/alternatives.log* /var/log/bootstrap.log && sudo rm -rf /var/log/apt/* && sudo journalctl --rotate --vacuum-time=1s 2>/dev/null; sudo rm -rf /tmp/* /var/tmp/* 2>/dev/null; fc -p /dev/null; echo '[+] Cleanup abgeschlossen.'"
+    owner: "{{ setup_user }}"
+    group: "{{ setup_user }}"
+
+- name: Find Wireshark desktop file
+  ansible.builtin.find:
+    paths: /usr/share/applications
+    patterns: "*wireshark*"
+    excludes: "*.disabled*"
+    file_type: file
+    depth: 1
+  register: wireshark_desktop
+
+- name: Add Wireshark to Whisker menu favorites
+  ansible.builtin.lineinfile:
+    path: "{{ whisker_defaults }}"
+    regexp: '^(favorites=(?!.*{{ wireshark_desktop.files[0].path | basename }}).*)$'
+    line: '\1,{{ wireshark_desktop.files[0].path | basename }}'
+    backrefs: true
+  when:
+    - whisker_stat.stat.exists
+    - wireshark_desktop.files | length > 0

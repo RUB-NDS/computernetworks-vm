@@ -1,0 +1,37 @@
+# ============================================================
+# KONFIGURATION – alle Eigennamen zentral an einer Stelle
+# ============================================================
+
+# Wird genutzt fuer: Dateinamen, Ordner, Apache-Configs
+course_id: "computernetze"
+course_title: "Computernetze"
+
+# Abgeleitete Variablen
+course_cert_dir: "/etc/ssl/{{ course_id }}"
+course_ca_name: "{{ course_title }} Root CA"
+course_org: "{{ course_title }}"
+
+# Benutzerkonten
+root_password: "toor"
+user_password: "kali"
+setup_user: "kali"
+
+# Vorlesungs-Domains
+course_domains:
+  - attacker.com
+  - honest-sp.com
+  - honest-idp.com
+  - malicious.com
+course_docker_domain: "malicious.com"
+
+# Locale / Tastatur
+timezone: "Europe/Berlin"
+keyboard_layout: "de"
+system_locale: "en_US.UTF-8"
+
+# VS Code Extensions
+vscode_extensions:
+  - humao.rest-client
+
+# XFCE Whisker-Menu
+whisker_defaults: "/etc/xdg/xfce4/whiskermenu/defaults.rc"

@@ -1,0 +1,28 @@
+---
+- name: Kali VM Setup fuer Computernetze
+  hosts: localhost
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Set dpkg architecture fact
+      ansible.builtin.set_fact:
+        dpkg_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+
+    - name: Check if Whisker menu defaults exists
+      ansible.builtin.stat:
+        path: "{{ whisker_defaults }}"
+      register: whisker_stat
+
+  roles:
+    - base
+    - vm_tools
+    - apache_ssl
+    - browsers
+    - tor
+    - burpsuite
+    - docker
+    - locale
+    - hosts
+    - vscode
+    - cleanup

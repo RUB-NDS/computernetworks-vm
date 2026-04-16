@@ -1,0 +1,21 @@
+---
+- name: Install Burp Suite Community Edition
+  ansible.builtin.apt:
+    name: burpsuite
+    state: present
+
+- name: Find Burp Suite desktop file
+  ansible.builtin.shell:
+    cmd: "find /usr/share/applications -maxdepth 1 -name '*burp*' -printf '%f\\n' 2>/dev/null | head -1"
+  register: burp_desktop
+  changed_when: false
+
+- name: Add Burp Suite to Whisker menu favorites
+  ansible.builtin.lineinfile:
+    path: "{{ whisker_defaults }}"
+    regexp: '^(favorites=(?!.*{{ burp_desktop.stdout }}).*)$'
+    line: '\1,{{ burp_desktop.stdout }}'
+    backrefs: true
+  when:
+    - whisker_stat.stat.exists
+    - burp_desktop.stdout | length > 0

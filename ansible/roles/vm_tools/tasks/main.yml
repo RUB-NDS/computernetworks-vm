@@ -1,0 +1,110 @@
+---
+- name: Detect hypervisor
+  ansible.builtin.command: systemd-detect-virt
+  register: hypervisor
+  changed_when: false
+  failed_when: false
+
+# --- QEMU / KVM ---
+- name: Install SPICE and QEMU guest tools
+  ansible.builtin.apt:
+    name:
+      - spice-vdagent
+      - qemu-guest-agent
+    state: present
+  when: hypervisor.stdout in ['qemu', 'kvm']
+
+- name: Enable SPICE and QEMU services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - spice-vdagentd
+    - qemu-guest-agent
+  when: hypervisor.stdout in ['qemu', 'kvm']
+  failed_when: false
+
+# --- VirtualBox ---
+- name: Install VirtualBox Guest Additions
+  ansible.builtin.apt:
+    name: virtualbox-guest-x11
+    state: present
+  when: hypervisor.stdout == 'oracle'
+
+# --- VMware ---
+- name: Install open-vm-tools
+  ansible.builtin.apt:
+    name:
+      - open-vm-tools
+      - open-vm-tools-desktop
+    state: present
+  when: hypervisor.stdout == 'vmware'
+
+- name: Enable vmtoolsd service
+  ansible.builtin.systemd:
+    name: vmtoolsd
+    enabled: true
+    state: started
+  when: hypervisor.stdout == 'vmware'
+  failed_when: false
+
+# --- Unknown hypervisor fallback ---
+- name: Install generic guest tools (unknown hypervisor)
+  ansible.builtin.apt:
+    name:
+      - spice-vdagent
+      - qemu-guest-agent
+    state: present
+  when: hypervisor.stdout not in ['qemu', 'kvm', 'oracle', 'vmware']
+  failed_when: false
+
+# --- Shared Folder ---
+- name: Create shared folder directory
+  ansible.builtin.file:
+    path: "/home/{{ setup_user }}/shared"
+    state: directory
+    owner: "{{ setup_user }}"
+    group: "{{ setup_user }}"
+    mode: "0755"
+
+- name: Add VirtFS (9p) entry to fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^share\s+/home/{{ setup_user }}/shared\s+9p'
+    line: "share /home/{{ setup_user }}/shared 9p trans=virtio,version=9p2000.L,rw,_netdev,nofail,noauto,x-systemd.automount 0 0"
+
+- name: Install SPICE WebDAV support
+  ansible.builtin.apt:
+    name:
+      - spice-webdavd
+      - davfs2
+    state: present
+  failed_when: false
+
+- name: Enable spice-webdavd service
+  ansible.builtin.systemd:
+    name: spice-webdavd
+    enabled: true
+    state: started
+  failed_when: false
+
+- name: Create davfs2 config directory
+  ansible.builtin.file:
+    path: /etc/davfs2
+    state: directory
+    mode: "0755"
+
+- name: Configure davfs2 credentials for SPICE WebDAV
+  ansible.builtin.lineinfile:
+    path: /etc/davfs2/secrets
+    regexp: 'localhost:9843'
+    line: 'http://localhost:9843 "" ""'
+    create: true
+    mode: "0600"
+
+- name: Add SPICE WebDAV entry to fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: 'localhost:9843'
+    line: "http://localhost:9843 /home/{{ setup_user }}/shared davfs _netdev,nofail,noauto,x-systemd.automount,user 0 0"

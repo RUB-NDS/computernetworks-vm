@@ -1,0 +1,48 @@
+---
+- name: Enable en_US.UTF-8 locale
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: '^#?\s*en_US\.UTF-8'
+    line: 'en_US.UTF-8 UTF-8'
+
+- name: Generate locales
+  ansible.builtin.command: locale-gen
+  changed_when: false
+
+- name: Set system locale
+  ansible.builtin.command: "update-locale LANG={{ system_locale }} LC_ALL={{ system_locale }}"
+  changed_when: false
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Set X11 keyboard layout
+  ansible.builtin.command: "localectl set-x11-keymap {{ keyboard_layout }}"
+  changed_when: false
+
+- name: Configure keyboard layout in /etc/default/keyboard
+  ansible.builtin.lineinfile:
+    path: /etc/default/keyboard
+    regexp: '^XKBLAYOUT='
+    line: 'XKBLAYOUT="{{ keyboard_layout }}"'
+
+- name: Reconfigure keyboard-configuration
+  ansible.builtin.command: dpkg-reconfigure -f noninteractive keyboard-configuration
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  changed_when: false
+  failed_when: false
+
+- name: Apply keyboard layout to running session
+  become_user: "{{ setup_user }}"
+  ansible.builtin.command: "setxkbmap {{ keyboard_layout }}"
+  environment:
+    DISPLAY: ":0"
+  changed_when: false
+  failed_when: false
+
+- name: Trigger udev input events
+  ansible.builtin.command: udevadm trigger --subsystem-match=input --action=change
+  changed_when: false
+  failed_when: false

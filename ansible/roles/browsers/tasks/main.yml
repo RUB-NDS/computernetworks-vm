@@ -1,0 +1,121 @@
+---
+- name: Install NSS tools
+  ansible.builtin.apt:
+    name: libnss3-tools
+    state: present
+
+- name: Copy CA certificate to system trust store
+  ansible.builtin.copy:
+    src: "{{ course_cert_dir }}/ca.crt"
+    dest: "/usr/local/share/ca-certificates/{{ course_id }}-ca.crt"
+    remote_src: true
+    mode: "0644"
+
+- name: Update system CA certificates
+  ansible.builtin.command: update-ca-certificates -f
+  changed_when: false
+
+# --- Google Chrome / Chromium ---
+- name: Check if Google Chrome is installed
+  ansible.builtin.command: which google-chrome
+  register: chrome_check
+  changed_when: false
+  failed_when: false
+
+- name: Download Google Chrome .deb
+  ansible.builtin.get_url:
+    url: "https://dl.google.com/linux/direct/google-chrome-stable_current_{{ dpkg_arch }}.deb"
+    dest: /tmp/chrome.deb
+    mode: "0644"
+  when: chrome_check.rc != 0
+  register: chrome_download
+  failed_when: false
+
+- name: Install Google Chrome
+  ansible.builtin.apt:
+    deb: /tmp/chrome.deb
+  when:
+    - chrome_check.rc != 0
+    - chrome_download is not failed
+
+- name: Remove Chrome installer
+  ansible.builtin.file:
+    path: /tmp/chrome.deb
+    state: absent
+
+- name: Install Chromium as fallback
+  ansible.builtin.apt:
+    name: chromium
+    state: present
+  when:
+    - chrome_check.rc != 0
+    - chrome_download is failed
+
+# --- Chrome NSS database ---
+- name: Create Chrome NSS database directory
+  ansible.builtin.file:
+    path: "/home/{{ setup_user }}/.pki/nssdb"
+    state: directory
+    owner: "{{ setup_user }}"
+    group: "{{ setup_user }}"
+    mode: "0700"
+
+- name: Check if Chrome NSS database exists
+  ansible.builtin.stat:
+    path: "/home/{{ setup_user }}/.pki/nssdb/cert9.db"
+  register: nssdb_stat
+
+- name: Initialize Chrome NSS database
+  become_user: "{{ setup_user }}"
+  ansible.builtin.command: 'certutil -N --empty-password -d "sql:/home/{{ setup_user }}/.pki/nssdb"'
+  when: not nssdb_stat.stat.exists
+
+- name: Remove old CA from Chrome NSS database
+  become_user: "{{ setup_user }}"
+  ansible.builtin.command: 'certutil -D -n "{{ course_ca_name }}" -d "sql:/home/{{ setup_user }}/.pki/nssdb"'
+  changed_when: false
+  failed_when: false
+
+- name: Import CA into Chrome NSS database
+  become_user: "{{ setup_user }}"
+  ansible.builtin.command: >
+    certutil -A -n "{{ course_ca_name }}" -t "CT,C,C"
+    -i "{{ course_cert_dir }}/ca.crt"
+    -d "sql:/home/{{ setup_user }}/.pki/nssdb"
+  changed_when: false
+
+# --- Firefox policy ---
+- name: Create Firefox policy directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /etc/firefox-esr/policies
+    - /etc/firefox/policies
+
+- name: Deploy Firefox CA policy
+  ansible.builtin.template:
+    src: firefox-policies.json.j2
+    dest: "{{ item }}/policies.json"
+    mode: "0644"
+  loop:
+    - /etc/firefox-esr/policies
+    - /etc/firefox/policies
+
+# --- Whisker menu ---
+- name: Find browser desktop file
+  ansible.builtin.shell:
+    cmd: "find /usr/share/applications -maxdepth 1 \\( -name 'google-chrome*.desktop' -o -name 'chromium*.desktop' \\) -printf '%f\\n' 2>/dev/null | head -1"
+  register: browser_desktop
+  changed_when: false
+
+- name: Add browser to Whisker menu favorites
+  ansible.builtin.lineinfile:
+    path: "{{ whisker_defaults }}"
+    regexp: '^(favorites=(?!.*{{ browser_desktop.stdout }}).*)$'
+    line: '\1,{{ browser_desktop.stdout }}'
+    backrefs: true
+  when:
+    - whisker_stat.stat.exists
+    - browser_desktop.stdout | length > 0

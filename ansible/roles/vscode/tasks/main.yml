@@ -1,0 +1,71 @@
+---
+- name: Check if VS Code repository (.list) exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/vscode.list
+  register: vscode_list
+
+- name: Check if VS Code repository (.sources) exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/vscode.sources
+  register: vscode_sources
+
+- name: Create keyrings directory
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: "0755"
+  when: not vscode_list.stat.exists and not vscode_sources.stat.exists
+
+- name: Download and dearmor Microsoft GPG key
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
+    creates: /usr/share/keyrings/microsoft.gpg
+  when: not vscode_list.stat.exists and not vscode_sources.stat.exists
+
+- name: Set Microsoft GPG key permissions
+  ansible.builtin.file:
+    path: /usr/share/keyrings/microsoft.gpg
+    mode: "0644"
+  when: not vscode_list.stat.exists and not vscode_sources.stat.exists
+
+- name: Add VS Code apt repository
+  ansible.builtin.copy:
+    content: "deb [arch={{ dpkg_arch }} signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+    dest: /etc/apt/sources.list.d/vscode.list
+    mode: "0644"
+  when: not vscode_list.stat.exists and not vscode_sources.stat.exists
+  notify: Update apt cache for VS Code
+
+- name: Flush handlers to update apt cache
+  ansible.builtin.meta: flush_handlers
+
+- name: Install VS Code
+  ansible.builtin.apt:
+    name: code
+    state: present
+    install_recommends: false
+
+- name: List installed VS Code extensions
+  become_user: "{{ setup_user }}"
+  ansible.builtin.command: code --list-extensions
+  register: installed_extensions
+  changed_when: false
+  failed_when: false
+  environment:
+    HOME: "/home/{{ setup_user }}"
+
+- name: Install VS Code extensions
+  become_user: "{{ setup_user }}"
+  ansible.builtin.command: "code --install-extension {{ item }}"
+  loop: "{{ vscode_extensions }}"
+  when: item not in (installed_extensions.stdout_lines | default([]))
+  environment:
+    HOME: "/home/{{ setup_user }}"
+
+- name: Add VS Code to Whisker menu favorites
+  ansible.builtin.lineinfile:
+    path: "{{ whisker_defaults }}"
+    regexp: '^(favorites=(?!.*code\.desktop).*)$'
+    line: '\1,code.desktop'
+    backrefs: true
+  when: whisker_stat.stat.exists
