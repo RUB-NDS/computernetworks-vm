@@ -12,11 +12,16 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
 log "Kali Setup Update gestartet"
 
-# --- Repository klonen (immer frisch, shallow clone ist klein) ---
-rm -rf "$REPO_DIR"
-log "Klone Repository (Branch: $BRANCH)..."
-mkdir -p "$STATE_DIR"
-git clone -b "$BRANCH" --depth 1 "$REPO_URL" "$REPO_DIR"
+# --- Repository klonen oder aktualisieren ---
+if [[ -d "$REPO_DIR/.git" ]]; then
+    log "Aktualisiere Repository..."
+    git -C "$REPO_DIR" fetch origin "$BRANCH" --depth 1
+    git -C "$REPO_DIR" reset --hard FETCH_HEAD
+else
+    log "Klone Repository (Branch: $BRANCH)..."
+    mkdir -p "$STATE_DIR"
+    git clone -b "$BRANCH" --depth 1 "$REPO_URL" "$REPO_DIR"
+fi
 
 # --- Playbook ausfuehren (ohne Cleanup) ---
 log "Starte Playbook..."
