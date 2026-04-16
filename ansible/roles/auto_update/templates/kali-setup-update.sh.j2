@@ -28,7 +28,7 @@ log "Starte Playbook..."
 ANSIBLE_FORCE_COLOR=1 ansible-playbook \
     -i "$REPO_DIR/ansible/inventory.yml" \
     "$REPO_DIR/ansible/playbook.yml" \
-    --extra-vars "setup_user=$SETUP_USER" \
+    --extra-vars "setup_user=$SETUP_USER repo_branch=$BRANCH" \
     --skip-tags cleanup \
     2>&1 | tee -a "$LOG_FILE"
 
