@@ -7,7 +7,7 @@
   pre_tasks:
     - name: Set dpkg architecture fact
       ansible.builtin.set_fact:
-        dpkg_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+        dpkg_arch: "{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}"
 
     - name: Check if Whisker menu defaults exists
       ansible.builtin.stat:
