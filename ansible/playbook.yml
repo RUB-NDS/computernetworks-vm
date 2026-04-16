@@ -25,4 +25,6 @@
     - locale
     - hosts
     - vscode
-    - cleanup
+    - auto_update
+    - role: cleanup
+      tags: ['cleanup']

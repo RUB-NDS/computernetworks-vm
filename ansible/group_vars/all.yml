@@ -35,3 +35,7 @@ vscode_extensions:
 
 # XFCE Whisker-Menu
 whisker_defaults: "/etc/xdg/xfce4/whiskermenu/defaults.rc"
+
+# Repository / Auto-Update
+repo_url: "https://github.com/RUB-NDS/computernetworks-vm.git"
+repo_branch: "main"

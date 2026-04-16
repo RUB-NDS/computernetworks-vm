@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_URL="{{ repo_url }}"
+BRANCH="{{ repo_branch }}"
+STATE_DIR="/var/lib/kali-setup"
+REPO_DIR="$STATE_DIR/repo"
+LAST_COMMIT_FILE="$STATE_DIR/last-commit"
+LOG_FILE="/var/log/kali-setup-update.log"
+SETUP_USER="{{ setup_user }}"
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
+
+log "Kali Setup Update gestartet"
+
+# --- Repository klonen oder aktualisieren ---
+if [[ -d "$REPO_DIR/.git" ]]; then
+    log "Aktualisiere Repository..."
+    git -C "$REPO_DIR" fetch origin "$BRANCH" --depth 1
+    git -C "$REPO_DIR" reset --hard "origin/$BRANCH"
+else
+    log "Klone Repository (Branch: $BRANCH)..."
+    mkdir -p "$STATE_DIR"
+    git clone -b "$BRANCH" --depth 1 "$REPO_URL" "$REPO_DIR"
+fi
+
+# --- Pruefen ob Aenderungen vorliegen ---
+CURRENT_COMMIT=$(git -C "$REPO_DIR" rev-parse HEAD)
+LAST_COMMIT=$(cat "$LAST_COMMIT_FILE" 2>/dev/null || echo "none")
+
+if [[ "$CURRENT_COMMIT" == "$LAST_COMMIT" ]]; then
+    log "Keine Aenderungen (Commit: ${CURRENT_COMMIT:0:8}). Ueberspringe."
+    exit 0
+fi
+
+log "Neue Aenderungen erkannt (${LAST_COMMIT:0:8} -> ${CURRENT_COMMIT:0:8}). Starte Playbook..."
+
+# --- Playbook ausfuehren (ohne Cleanup) ---
+ANSIBLE_FORCE_COLOR=1 ansible-playbook \
+    -i "$REPO_DIR/ansible/inventory.yml" \
+    "$REPO_DIR/ansible/playbook.yml" \
+    --extra-vars "setup_user=$SETUP_USER" \
+    --skip-tags cleanup \
+    2>&1 | tee -a "$LOG_FILE"
+
+echo "$CURRENT_COMMIT" > "$LAST_COMMIT_FILE"
+log "Update abgeschlossen (Commit: ${CURRENT_COMMIT:0:8})."

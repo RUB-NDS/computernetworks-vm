@@ -1,0 +1,24 @@
+---
+- name: Create state directory
+  ansible.builtin.file:
+    path: /var/lib/kali-setup
+    state: directory
+    mode: "0755"
+
+- name: Deploy update script
+  ansible.builtin.template:
+    src: kali-setup-update.sh.j2
+    dest: /usr/local/bin/kali-setup-update
+    mode: "0755"
+
+- name: Deploy systemd auto-update service
+  ansible.builtin.template:
+    src: kali-setup-update.service.j2
+    dest: /etc/systemd/system/kali-setup-update.service
+    mode: "0644"
+
+- name: Enable auto-update service at boot
+  ansible.builtin.systemd:
+    name: kali-setup-update
+    enabled: true
+    daemon_reload: true

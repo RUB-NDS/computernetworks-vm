@@ -1,0 +1,12 @@
+[Unit]
+Description=Kali VM Setup Auto-Update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/kali-setup-update
+Environment=DEBIAN_FRONTEND=noninteractive
+
+[Install]
+WantedBy=multi-user.target
