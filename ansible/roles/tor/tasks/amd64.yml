@@ -9,7 +9,7 @@
   ansible.builtin.shell:
     cmd: |
       curl -fsSL "https://dist.torproject.org/torbrowser/" \
-        | grep -oP 'href="\K[0-9]+\.[0-9]+[^/"]*' \
+        | grep -oP 'href="\K[0-9]+\.[0-9]+(\.[0-9]+)*(?=/)' \
         | sort -V | tail -1
   register: tor_stable_version
   changed_when: false
