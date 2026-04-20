@@ -7,10 +7,11 @@ STATE_DIR="/var/lib/kali-setup"
 REPO_DIR="$STATE_DIR/repo"
 LOG_FILE="/var/log/kali-setup-update.log"
 SETUP_USER="{{ setup_user }}"
+KEYBOARD=$(cat "$STATE_DIR/keyboard_layout" 2>/dev/null || echo "de")
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
-log "Kali Setup Update gestartet"
+log "Kali Setup Update gestartet (Tastatur: $KEYBOARD)"
 
 # --- Repository klonen oder aktualisieren ---
 if [[ -d "$REPO_DIR/.git" ]]; then
@@ -28,7 +29,7 @@ log "Starte Playbook..."
 ANSIBLE_FORCE_COLOR=1 ansible-playbook \
     -i "$REPO_DIR/ansible/inventory.yml" \
     "$REPO_DIR/ansible/playbook.yml" \
-    --extra-vars "setup_user=$SETUP_USER repo_branch=$BRANCH" \
+    --extra-vars "setup_user=$SETUP_USER repo_branch=$BRANCH keyboard_layout=$KEYBOARD" \
     --skip-tags cleanup \
     2>&1 | tee -a "$LOG_FILE"
 

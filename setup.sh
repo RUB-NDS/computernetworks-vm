@@ -10,12 +10,33 @@ fi
 # KONFIGURATION
 # ============================================================
 BRANCH="${1:-${KALI_SETUP_BRANCH:-main}}"
+KEYBOARD="${2:-}"
 REPO_URL="https://github.com/RUB-NDS/computernetworks-vm.git"
 CLONE_DIR="/tmp/computernetworks-vm"
 LOG_FILE="/var/log/kali-setup.log"
+STATE_DIR="/var/lib/kali-setup"
 REAL_USER="${SUDO_USER:-kali}"
 
-echo "[*] $(date '+%Y-%m-%d %H:%M:%S') Kali Setup startet (User: $REAL_USER)" | tee -a "$LOG_FILE"
+echo ""
+echo "  ╔══════════════════════════════════════════╗"
+echo "  ║       Kali VM Setup – Computernetze      ║"
+echo "  ╚══════════════════════════════════════════╝"
+echo ""
+
+# --- Tastaturlayout abfragen (falls nicht per Argument uebergeben) ---
+if [[ -z "$KEYBOARD" ]]; then
+    echo "  Verfuegbare Tastaturlayouts: de, us, gb, fr, es, it, ..."
+    printf "  Tastaturlayout [de]: "
+    read -r KEYBOARD < /dev/tty 2>/dev/null || true
+    KEYBOARD="${KEYBOARD:-de}"
+fi
+
+echo ""
+echo "[*] $(date '+%Y-%m-%d %H:%M:%S') Kali Setup startet (User: $REAL_USER, Tastatur: $KEYBOARD)" | tee -a "$LOG_FILE"
+
+# --- Einstellung persistent speichern ---
+mkdir -p "$STATE_DIR"
+echo "$KEYBOARD" > "$STATE_DIR/keyboard_layout"
 
 # --- 1. APT-Quellen sicherstellen ---
 KALI_REPO="deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware"
@@ -40,7 +61,7 @@ echo "[*] Starte Ansible Playbook..." | tee -a "$LOG_FILE"
 ANSIBLE_FORCE_COLOR=1 ansible-playbook \
     -i "$CLONE_DIR/ansible/inventory.yml" \
     "$CLONE_DIR/ansible/playbook.yml" \
-    --extra-vars "setup_user=$REAL_USER repo_branch=$BRANCH" \
+    --extra-vars "setup_user=$REAL_USER repo_branch=$BRANCH keyboard_layout=$KEYBOARD" \
     2>&1 | tee -a "$LOG_FILE"
 
 # --- 5. Aufraeumen ---

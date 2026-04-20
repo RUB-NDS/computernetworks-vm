@@ -18,14 +18,20 @@ wget -qO- https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/feature/
   | sudo bash -s -- feature/ansible-playbook
 ```
 
-Falls `wget` nicht verfuegbar ist, alternativ mit `curl`:
+Das Skript fragt nach dem **Tastaturlayout** (Standard: `de`).
+Fuer ein anderes Layout, z.B. US-Englisch, kann es auch direkt als
+zweiter Parameter uebergeben werden:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/feature/ansible-playbook/setup.sh \
-  | sudo bash -s -- feature/ansible-playbook
+wget -qO- https://raw.githubusercontent.com/RUB-NDS/computernetworks-vm/feature/ansible-playbook/setup.sh \
+  | sudo bash -s -- feature/ansible-playbook us
 ```
 
 > **Hinweis:** Der Befehl benoetigt Root-Rechte. Gebt euer Passwort ein,
 > wenn ihr dazu aufgefordert werdet.
+>
+> Das gewaehlte Layout wird unter `/var/lib/kali-setup/keyboard_layout`
+> gespeichert und bei jedem Auto-Update beibehalten.
 
 Das Setup laeuft vollautomatisch und dauert je nach Internetverbindung
 **5–15 Minuten**. Das vollstaendige Log wird unter
